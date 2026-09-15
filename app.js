@@ -32,24 +32,16 @@ const STOPS = [
   {
     id: "takeoff_speed",
     label: "Takeoff speed",
-    question: "If that happens, does capability jump within months, rather than unfold over years?",
+    question: "If that happens, does capability jump within months or a few years, rather than unfold over many years?",
     subtext: "This sets how much warning time humans and institutions get to react.",
   },
   {
     id: "alignment_tractable",
     label: "Control and alignment",
     question:
-      "Will alignment stay unsolved: will we lack reliable methods to align a much smarter system with human intent, in time?",
+      "Is alignment difficult: will we lack reliable methods to align a much smarter system with human intent, in time?",
     subtext:
       "People who expect alignment methods to keep pace with capability gains usually get off here, since a solved alignment problem breaks the rest of the chain.",
-  },
-  {
-    id: "warning_shots",
-    label: "Warning shots",
-    question:
-      "Will the first critical failure arrive with no earlier warning that is both visible and survivable?",
-    subtext:
-      "Some people expect a clear warning shot first, giving humans a chance to correct course. Other people expect the first critical failure to be sudden and unrecoverable.",
   },
   {
     id: "competitive_dynamics",
@@ -62,7 +54,7 @@ const STOPS = [
     id: "magnitude",
     label: "Magnitude of outcome",
     question:
-      "Does all of the above add up to a real chance of extinction or permanent human disempowerment, not just serious non-existential harm?",
+      "Will superintelligent AI be able to cause human extinction or permanent civilizational collapse, if misaligned?",
     subtext: "Some people accept every earlier stop but still expect a bad-but-survivable outcome.",
   },
   {
