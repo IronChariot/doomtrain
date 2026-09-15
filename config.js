@@ -1,0 +1,7 @@
+// Fill these in with your Supabase project values, then deploy.
+// Settings > API in your Supabase project dashboard.
+// Use the "anon" public key only — never the service_role key.
+window.DOOMTRAIN_CONFIG = {
+  supabaseUrl: "",
+  supabaseAnonKey: "",
+};

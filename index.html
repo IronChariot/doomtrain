@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>The Doom Train</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main id="app">
+    <section id="screen-intro" class="screen active">
+      <h1>The Doom Train</h1>
+      <p class="lede">
+        A short series of yes/no questions about AI existential risk.
+        Each question builds on the last. Answer honestly, and get off
+        the train the moment you disagree.
+      </p>
+      <button id="btn-start" class="primary">Start</button>
+    </section>
+
+    <section id="screen-stop" class="screen">
+      <div class="stop-meta">
+        <span id="stop-index"></span>
+      </div>
+      <h2 id="stop-question"></h2>
+      <p id="stop-subtext" class="subtext"></p>
+      <div class="choices">
+        <button id="btn-yes" class="primary">Yes</button>
+        <button id="btn-no" class="secondary">No</button>
+      </div>
+    </section>
+
+    <section id="screen-result" class="screen">
+      <h2 id="result-title"></h2>
+      <p id="result-body" class="subtext"></p>
+      <div id="result-breakdown" class="breakdown"></div>
+
+      <div id="pdoom-block" class="pdoom-block">
+        <label for="pdoom-input">Your P(doom), as a percentage:</label>
+        <input id="pdoom-input" type="range" min="0" max="100" value="20" />
+        <div id="pdoom-value">20%</div>
+        <button id="btn-submit-pdoom" class="primary">Submit</button>
+      </div>
+
+      <div id="sincerity-block" class="sincerity-block" hidden>
+        <p>
+          Given your own answers above, when an AI company CEO talks in
+          public about this risk, do you think they are:
+        </p>
+        <div class="choices">
+          <button class="secondary" data-sincerity="sincere">Sincere</button>
+          <button class="secondary" data-sincerity="exaggerating">Exaggerating</button>
+          <button class="secondary" data-sincerity="downplaying">Downplaying</button>
+        </div>
+      </div>
+
+      <div id="stats-block" class="stats-block" hidden>
+        <p id="stats-line"></p>
+      </div>
+
+      <button id="btn-restart" class="link" hidden>Start over</button>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
