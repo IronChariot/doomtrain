@@ -72,10 +72,10 @@ h2 {
 
 .glossary-term {
   font: inherit;
-  color: inherit;
+  color: var(--accent);
   background: none;
   border: none;
-  border-bottom: 1px dotted var(--accent);
+  border-bottom: 1px dashed var(--accent);
   padding: 0;
   border-radius: 0;
   cursor: help;
@@ -83,7 +83,8 @@ h2 {
 
 .glossary-term:hover,
 .glossary-term[aria-expanded="true"] {
-  color: var(--accent);
+  color: #f6867f;
+  border-bottom-color: #f6867f;
 }
 
 .definition {

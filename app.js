@@ -232,7 +232,7 @@ function renderStop() {
 const GLOSSARY_TERM = {
   phrase: "general intelligence",
   definition:
-    "An entity with higher general intelligence than a human is defined in this website as an entity capable of performing the vast majority of tasks/solving the vast majority of problems that a human can solve, and have other advantages in this realm over humans, such as speed/parallelisation, greater variety of problems they can solve, needing less data to solve the same problems, etc.",
+    "An entity with higher general intelligence than a human is defined on this website as an entity capable of performing the vast majority of tasks/solving the vast majority of problems that a human can solve, and have other advantages in this realm over humans, such as speed/parallelisation, greater variety of problems they can solve, needing less data to solve the same problems, etc.",
 };
 
 let definitionOpen = false;
