@@ -295,14 +295,10 @@ document.getElementById("btn-no").addEventListener("click", () => {
 });
 
 async function fetchStats() {
-  if (!client) return {};
-  const { data, error } = await client.rpc("get_stop_stats");
-  if (error || !data) return {};
-  const map = {};
-  for (const row of data) {
-    map[row.stop_reached] = { n: Number(row.n), avgPdoom: row.avg_pdoom === null ? null : Number(row.avg_pdoom) };
-  }
-  return map;
+  if (!client) return { total: 0, stops: {}, nodes: {} };
+  const { data, error } = await client.rpc("get_board_stats");
+  if (error || !data) return { total: 0, stops: {}, nodes: {} };
+  return { total: data.total || 0, stops: data.stops || {}, nodes: data.nodes || {} };
 }
 
 function renderBreakdown(stats) {
@@ -317,7 +313,7 @@ function renderBreakdown(stats) {
 
   for (const row of rows) {
     const isCurrent = row.id === stopReached;
-    const entry = stats[row.id];
+    const entry = stats.stops[row.id];
 
     const name = document.createElement("span");
     name.textContent = isCurrent ? `${row.label} (you)` : row.label;
@@ -396,19 +392,76 @@ document.querySelectorAll("[data-sincerity]").forEach((btn) => {
     }
 
     const stats = await fetchStats();
-    const entry = stats[stopReached];
-    const statsLine = document.getElementById("stats-line");
-    if (entry && entry.avgPdoom !== null) {
-      statsLine.textContent = `Visitors who got off at your stop gave an average P(doom) of ${entry.avgPdoom}%, across ${entry.n} responses.`;
-    } else {
-      statsLine.textContent = "No average P(doom) is available for your stop yet.";
-    }
+    renderStatsLine(stats);
+    renderYourStats(stats, sincerity);
 
     document.getElementById("stats-block").hidden = false;
     document.getElementById("btn-restart").hidden = false;
+    document.body.classList.add("wide");
     renderBreakdown(stats);
+
+    DoomRail.play({
+      canvas: document.getElementById("rail-canvas"),
+      tooltip: document.getElementById("rail-tooltip"),
+      stats,
+      youAnswers: answers,
+      LINES,
+    });
   });
 });
+
+function renderStatsLine(stats) {
+  const entry = stats.stops[stopReached];
+  const line = document.getElementById("stats-line");
+  if (entry && entry.avg_pdoom !== null && entry.avg_pdoom !== undefined) {
+    line.textContent = `${stats.total} people have ridden the train. Those who got off at your stop gave an average P(doom) of ${entry.avg_pdoom}%, across ${entry.n} of them.`;
+  } else {
+    line.textContent = "No average P(doom) is available for your stop yet.";
+  }
+}
+
+function renderYourStats(stats, sincerity) {
+  const wrap = document.getElementById("your-stats");
+  wrap.innerHTML = "";
+  const entry = stats.stops[stopReached] || {};
+  const total = stats.total || 0;
+  const pct = (a, b) => (b ? `${Math.round((a / b) * 100)}%` : "—");
+
+  const tr = entry.tractability || {};
+  const si = entry.sincerity || {};
+  const trN = (tr.helps || 0) + (tr.locked || 0);
+  const siN = (si.sincere || 0) + (si.exaggerating || 0) + (si.downplaying || 0);
+
+  const cards = [
+    ["Your P(doom)", `${chosenPdoom}%`],
+    ["Average at your stop", entry.avg_pdoom === undefined || entry.avg_pdoom === null ? "—" : `${entry.avg_pdoom}%`],
+    ["Got off where you did", entry.n ? `${entry.n} — ${pct(entry.n, total)} of everyone` : "You are the first"],
+    [
+      "At your stop, effort…",
+      trN ? `${pct(tr.helps, trN)} say it helps` : "—",
+    ],
+    [
+      "At your stop, CEOs are…",
+      siN
+        ? `${pct(si.sincere, siN)} sincere · ${pct(si.exaggerating, siN)} exaggerating · ${pct(si.downplaying, siN)} downplaying`
+        : "—",
+    ],
+    ["You said CEOs are", sincerity],
+  ];
+
+  for (const [k, v] of cards) {
+    const card = document.createElement("div");
+    card.className = "stat-card";
+    const key = document.createElement("span");
+    key.className = "k";
+    key.textContent = k;
+    const val = document.createElement("span");
+    val.className = "v";
+    val.textContent = v;
+    card.append(key, val);
+    wrap.appendChild(card);
+  }
+}
 
 document.getElementById("btn-restart").addEventListener("click", () => {
   currentLine = "main";
@@ -423,5 +476,6 @@ document.getElementById("btn-restart").addEventListener("click", () => {
   for (const key of Object.keys(answers)) delete answers[key];
   pdoomInput.value = 20;
   pdoomValue.textContent = "20%";
+  document.body.classList.remove("wide");
   showScreen(screens.intro);
 });

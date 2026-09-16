@@ -154,3 +154,91 @@ button.link {
 .stats-block p {
   color: var(--muted);
 }
+
+body.wide #app {
+  max-width: 1040px;
+}
+
+.rail-wrap {
+  position: relative;
+  margin-top: 18px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #101216;
+  overflow: hidden;
+}
+
+#rail-canvas {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1000 / 470;
+}
+
+.rail-tooltip {
+  position: absolute;
+  max-width: 300px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: #191c21;
+  color: var(--fg);
+  font-size: 0.8rem;
+  line-height: 1.45;
+  pointer-events: none;
+  z-index: 5;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5);
+}
+
+.rail-tooltip em {
+  color: var(--muted);
+  font-style: normal;
+  display: inline-block;
+  margin: 4px 0 6px;
+}
+
+.tt-rule {
+  display: block;
+  height: 1px;
+  background: var(--border);
+  margin: 8px 0;
+}
+
+.rail-hint {
+  font-size: 0.8rem;
+  margin-top: 10px;
+}
+
+.your-stats {
+  margin-top: 18px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.stat-card {
+  flex: 1 1 160px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 14px;
+  background: var(--card);
+}
+
+.stat-card .k {
+  display: block;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.stat-card .v {
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+
+@media (max-width: 720px) {
+  .rail-hint {
+    display: none;
+  }
+}

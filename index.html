@@ -64,6 +64,12 @@
 
       <div id="stats-block" class="stats-block" hidden>
         <p id="stats-line"></p>
+        <div id="rail-wrap" class="rail-wrap">
+          <canvas id="rail-canvas"></canvas>
+          <div id="rail-tooltip" class="rail-tooltip" hidden></div>
+        </div>
+        <p class="rail-hint">Hover a station to see its question and its numbers.</p>
+        <div id="your-stats" class="your-stats"></div>
       </div>
 
       <button id="btn-restart" class="link" hidden>Start over</button>
@@ -72,6 +78,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script src="config.js"></script>
+  <script src="railmap.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
