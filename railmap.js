@@ -32,7 +32,7 @@
     detour: "#f0a838",
     end: "#39d07f",
     you: "#e0463f",
-    dot: "#9aa3ad",
+    dot: "#ffffff",
   };
 
   let layout = null;
@@ -259,7 +259,7 @@
     const maxExit = Math.max(1, ...stations.map(([id]) => (stopStats[id] && stopStats[id].n) || 0));
 
     const journeys = buildJourneys(total, nodeStats);
-    const you = routeFromAnswers(youAnswers || {});
+    const you = youAnswers ? routeFromAnswers(youAnswers) : null;
 
     const SPEED = 118;
     const dots = journeys.map((j, i) => {
@@ -276,8 +276,11 @@
       };
     });
 
-    const youPts = waypoints(you);
-    const youDot = { pts: youPts, len: pathLength(youPts), delay: 1400, speed: SPEED };
+    let youDot = null;
+    if (you) {
+      const youPts = waypoints(you);
+      youDot = { pts: youPts, len: pathLength(youPts), delay: 1400, speed: SPEED };
+    }
 
     const counts = {};
     stations.forEach(([id]) => (counts[id] = 0));
@@ -296,9 +299,10 @@
     const sx = (x) => x * scale;
     const sy = (y) => y * scale;
 
-    // Screen radius, area proportional to the number who got off there.
+    // Screen radius, area proportional to how many have arrived so far. Every
+    // station starts at a single pixel and grows as its dots land.
     function stationRadius(id) {
-      const n = (stopStats[id] && stopStats[id].n) || 0;
+      const n = counts[id] || 0;
       return Math.max(0.5, (MAX_DIAMETER / 2) * Math.sqrt(n / maxExit) * scale);
     }
 
@@ -391,8 +395,8 @@
 
       drawStations();
 
-      const ydt = t - youDot.delay;
-      if (ydt >= 0) {
+      const ydt = youDot ? t - youDot.delay : -1;
+      if (youDot && ydt >= 0) {
         const travelled = Math.min(youDot.len, (ydt / 1000) * youDot.speed);
         const p = pointAt(youDot.pts, travelled);
         ctx.beginPath();

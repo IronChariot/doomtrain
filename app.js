@@ -245,6 +245,33 @@ document.getElementById("btn-start").addEventListener("click", () => {
   renderStop();
 });
 
+document.getElementById("btn-skip").addEventListener("click", async () => {
+  showScreen(screens.result);
+  document.getElementById("result-title").textContent = "You chose to walk and take in the view.";
+  document.getElementById("result-body").textContent =
+    "No ride of your own. Here is where everyone else got off.";
+  document.getElementById("pdoom-block").hidden = true;
+  document.getElementById("tractability-block").hidden = true;
+  document.getElementById("sincerity-block").hidden = true;
+  document.getElementById("stats-block").hidden = false;
+  document.getElementById("btn-restart").hidden = false;
+  document.body.classList.add("wide");
+
+  const stats = await fetchStats();
+  document.getElementById("stats-line").textContent = stats.total
+    ? `${stats.total} people have ridden the train so far.`
+    : "Nobody has ridden the train yet.";
+  renderOverallStats(stats);
+
+  DoomRail.play({
+    canvas: document.getElementById("rail-canvas"),
+    tooltip: document.getElementById("rail-tooltip"),
+    stats,
+    youAnswers: null,
+    LINES,
+  });
+});
+
 document.getElementById("btn-yes").addEventListener("click", () => {
   const stop = LINES[currentLine].stops[currentIndex];
 
@@ -376,6 +403,80 @@ document.querySelectorAll("[data-sincerity]").forEach((btn) => {
   });
 });
 
+function labelFor(id) {
+  if (id === "end") return "All aboard, main line";
+  if (id === "end_misuse") return "All aboard, misuse line";
+  for (const line of Object.values(LINES)) {
+    for (const stop of line.stops) {
+      if (stop.id === id) return stop.label;
+    }
+  }
+  return id;
+}
+
+// The walk-past view: no ride of your own, so show the whole picture instead.
+function renderOverallStats(stats) {
+  const wrap = document.getElementById("your-stats");
+  wrap.innerHTML = "";
+  const total = stats.total || 0;
+  const pct = (a, b) => (b ? `${Math.round((a / b) * 100)}%` : "—");
+
+  let pdoomSum = 0;
+  let pdoomN = 0;
+  let busiest = null;
+  const tr = { helps: 0, locked: 0 };
+  const si = { sincere: 0, exaggerating: 0, downplaying: 0 };
+
+  for (const [id, s] of Object.entries(stats.stops || {})) {
+    if (s.avg_pdoom !== null && s.avg_pdoom !== undefined) {
+      pdoomSum += Number(s.avg_pdoom) * s.n;
+      pdoomN += s.n;
+    }
+    tr.helps += (s.tractability || {}).helps || 0;
+    tr.locked += (s.tractability || {}).locked || 0;
+    si.sincere += (s.sincerity || {}).sincere || 0;
+    si.exaggerating += (s.sincerity || {}).exaggerating || 0;
+    si.downplaying += (s.sincerity || {}).downplaying || 0;
+    if (!busiest || s.n > busiest.n) busiest = { id, n: s.n };
+  }
+
+  const trN = tr.helps + tr.locked;
+  const siN = si.sincere + si.exaggerating + si.downplaying;
+
+  const cards = [
+    { k: "People so far", v: String(total) },
+    { k: "Average P(doom)", v: pdoomN ? `${(pdoomSum / pdoomN).toFixed(1)}%` : "—" },
+    {
+      k: "Busiest stop",
+      v: busiest ? labelFor(busiest.id) : "—",
+      sub: busiest ? `${busiest.n} people — ${pct(busiest.n, total)} of everyone` : null,
+    },
+    {
+      k: "Everyone says effort…",
+      rows: trN
+        ? [
+            ["still changes the odds", pct(tr.helps, trN)],
+            ["is already too late", pct(tr.locked, trN)],
+          ]
+        : null,
+      v: trN ? null : "—",
+    },
+    {
+      k: "Everyone says CEOs are…",
+      rows: siN
+        ? [
+            ["sincere", pct(si.sincere, siN)],
+            ["exaggerating", pct(si.exaggerating, siN)],
+            ["downplaying", pct(si.downplaying, siN)],
+          ]
+        : null,
+      v: siN ? null : "—",
+    },
+  ];
+
+  renderCards(wrap, cards);
+}
+
 function renderStatsLine(stats) {
   const entry = stats.stops[stopReached];
   const line = document.getElementById("stats-line");
@@ -429,6 +530,10 @@ function renderYourStats(stats, sincerity) {
     { k: "You said CEOs are", v: sincerity },
   ];
 
+  renderCards(wrap, cards);
+}
+
+function renderCards(wrap, cards) {
   for (const card of cards) {
     const el = document.createElement("div");
     el.className = "stat-card" + (card.rows ? " stat-card--rows" : "");
