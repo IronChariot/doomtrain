@@ -113,24 +113,6 @@ button.link {
   margin-top: 24px;
 }
 
-.breakdown {
-  margin: 20px 0;
-  font-size: 0.9rem;
-  color: var(--muted);
-}
-
-.breakdown-row {
-  display: flex;
-  justify-content: space-between;
-  padding: 4px 0;
-  border-bottom: 1px solid var(--border);
-}
-
-.breakdown-row.current {
-  color: var(--fg);
-  font-weight: 600;
-}
-
 .pdoom-block, .tractability-block, .sincerity-block, .stats-block {
   margin-top: 24px;
   padding-top: 20px;
@@ -165,13 +147,13 @@ body.wide #app {
   border: 1px solid var(--border);
   border-radius: 10px;
   background: #101216;
-  overflow: hidden;
 }
 
 #rail-canvas {
   display: block;
   width: 100%;
   aspect-ratio: 1000 / 470;
+  border-radius: 10px;
 }
 
 .rail-tooltip {
@@ -235,6 +217,32 @@ body.wide #app {
 .stat-card .v {
   font-size: 1.15rem;
   font-weight: 600;
+}
+
+.stat-card .sub {
+  display: block;
+  margin-top: 3px;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.stat-card--rows {
+  flex: 1 1 220px;
+}
+
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.84rem;
+  line-height: 1.7;
+  color: var(--muted);
+}
+
+.stat-row-v {
+  font-weight: 600;
+  color: var(--fg);
+  font-variant-numeric: tabular-nums;
 }
 
 @media (max-width: 720px) {

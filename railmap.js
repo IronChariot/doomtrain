@@ -9,6 +9,7 @@
   const DETOUR_Y = 95;
   const MISUSE_Y = 355;
   const MISUSE_DETOUR_Y = 440;
+  const SWITCH_Y = 272;
 
   const MAIN_X = [130, 218, 306, 394, 482, 570, 658, 746];
   const MISUSE_X = [262, 350, 438, 526, 614, 702];
@@ -16,6 +17,12 @@
   const START = { x: 55, y: MAIN_Y };
   const END_MAIN = { x: 850, y: MAIN_Y };
   const END_MISUSE = { x: 800, y: MISUSE_Y };
+
+  // Station areas are proportional to how many people got off there. The
+  // busiest station is 2.5x the standard diameter; everything scales from it.
+  const STD_DIAMETER = 16;
+  const MAX_DIAMETER = STD_DIAMETER * 2.5;
+  const ELBOW = 24;
 
   const COLORS = {
     rail: "#2b3037",
@@ -25,7 +32,7 @@
     detour: "#f0a838",
     end: "#39d07f",
     you: "#e0463f",
-    dot: "#8b939d",
+    dot: "#9aa3ad",
   };
 
   let layout = null;
@@ -43,12 +50,14 @@
       g.main.push({ id: stop.id, detour: stop.detour && stop.detour.id, switchTo: stop.detour && stop.detour.switchTo });
       if (stop.detour) {
         m[stop.detour.id] = { label: stop.detour.label, question: stop.detour.question };
-        if (stop.detour.switchTo) {
-          pos[stop.detour.id] = { x: 175, y: 270, kind: "detour", line: "main" };
-        } else {
-          const next = MAIN_X[i + 1] !== undefined ? MAIN_X[i + 1] : MAIN_X[i] + 88;
-          pos[stop.detour.id] = { x: (MAIN_X[i] + next) / 2, y: DETOUR_Y, kind: "detour", line: "main" };
-        }
+        // The apex sits directly above the stop you get off at if you say no.
+        pos[stop.detour.id] = {
+          x: MAIN_X[i],
+          y: stop.detour.switchTo ? SWITCH_Y : DETOUR_Y,
+          kind: "detour",
+          line: "main",
+          parent: stop.id,
+        };
       }
     });
 
@@ -58,8 +67,13 @@
       g.misuse.push({ id: stop.id, detour: stop.detour && stop.detour.id });
       if (stop.detour) {
         m[stop.detour.id] = { label: stop.detour.label, question: stop.detour.question };
-        const next = MISUSE_X[i + 1] !== undefined ? MISUSE_X[i + 1] : MISUSE_X[i] + 88;
-        pos[stop.detour.id] = { x: (MISUSE_X[i] + next) / 2, y: MISUSE_DETOUR_Y, kind: "detour", line: "misuse" };
+        pos[stop.detour.id] = {
+          x: MISUSE_X[i],
+          y: MISUSE_DETOUR_Y,
+          kind: "detour",
+          line: "misuse",
+          parent: stop.id,
+        };
       }
     });
 
@@ -73,35 +87,43 @@
     meta = m;
   }
 
-  function railSegments() {
-    const segs = [];
+  // Plain rails, plus the detour elbows drawn separately in amber.
+  function buildRails() {
+    const rails = [];
+    const elbows = [];
     const chain = (ids) => {
-      for (let i = 0; i < ids.length - 1; i++) segs.push([layout[ids[i]], layout[ids[i + 1]]]);
+      for (let i = 0; i < ids.length - 1; i++) rails.push([layout[ids[i]], layout[ids[i + 1]]]);
     };
 
     const mainIds = graph.main.map((s) => s.id);
-    segs.push([START, layout[mainIds[0]]]);
+    rails.push([START, layout[mainIds[0]]]);
     chain(mainIds);
-    segs.push([layout[mainIds[mainIds.length - 1]], layout.end]);
-
-    graph.main.forEach((s, i) => {
-      if (!s.detour) return;
-      segs.push([layout[s.id], layout[s.detour]]);
-      if (s.switchTo) segs.push([layout[s.detour], layout[graph.misuse[0].id]]);
-      else if (graph.main[i + 1]) segs.push([layout[s.detour], layout[graph.main[i + 1].id]]);
-    });
+    rails.push([layout[mainIds[mainIds.length - 1]], layout.end]);
 
     const misuseIds = graph.misuse.map((s) => s.id);
     chain(misuseIds);
-    segs.push([layout[misuseIds[misuseIds.length - 1]], layout.end_misuse]);
+    rails.push([layout[misuseIds[misuseIds.length - 1]], layout.end_misuse]);
 
+    const addDetour = (stopId, detourId, nextId) => {
+      const a = layout[stopId];
+      const apex = layout[detourId];
+      const b = layout[nextId];
+      rails.push([a, apex], [apex, b]);
+      elbows.push({ a, apex, b });
+    };
+
+    graph.main.forEach((s, i) => {
+      if (!s.detour) return;
+      const next = s.switchTo ? graph.misuse[0].id : graph.main[i + 1] && graph.main[i + 1].id;
+      if (next) addDetour(s.id, s.detour, next);
+    });
     graph.misuse.forEach((s, i) => {
       if (!s.detour) return;
-      segs.push([layout[s.id], layout[s.detour]]);
-      if (graph.misuse[i + 1]) segs.push([layout[s.detour], layout[graph.misuse[i + 1].id]]);
+      const next = graph.misuse[i + 1] && graph.misuse[i + 1].id;
+      if (next) addDetour(s.id, s.detour, next);
     });
 
-    return segs;
+    return { rails, elbows };
   }
 
   // Split a group of journeys at each node using the real yes/no counts, so the
@@ -183,7 +205,7 @@
     journey.path.forEach((id) => pts.push(layout[id]));
     if (journey.exit) {
       const p = layout[journey.exit];
-      pts.push({ x: p.x, y: p.y + (p.line === "misuse" ? 52 : 48) });
+      pts.push({ x: p.x, y: p.y + (p.line === "misuse" ? -56 : 56) });
     } else if (journey.end) {
       pts.push(journey.end === "misuse" ? layout.end_misuse : layout.end);
     }
@@ -192,9 +214,7 @@
 
   function pathLength(pts) {
     let total = 0;
-    for (let i = 0; i < pts.length - 1; i++) {
-      total += Math.hypot(pts[i + 1].x - pts[i].x, pts[i + 1].y - pts[i].y);
-    }
+    for (let i = 0; i < pts.length - 1; i++) total += Math.hypot(pts[i + 1].x - pts[i].x, pts[i + 1].y - pts[i].y);
     return total;
   }
 
@@ -211,11 +231,15 @@
     return pts[pts.length - 1];
   }
 
-  function nodeColor(id) {
+  function towards(from, to, dist) {
+    const d = Math.hypot(to.x - from.x, to.y - from.y) || 1;
+    return { x: from.x + ((to.x - from.x) / d) * dist, y: from.y + ((to.y - from.y) / d) * dist };
+  }
+
+  function stationColor(id) {
     const p = layout[id];
     if (!p) return COLORS.dot;
     if (p.kind === "end") return COLORS.end;
-    if (p.kind === "detour") return COLORS.detour;
     return p.line === "misuse" ? COLORS.misuse : COLORS.main;
   }
 
@@ -229,7 +253,10 @@
     const nodeStats = stats.nodes || {};
     const stopStats = stats.stops || {};
     const total = stats.total || 0;
-    const segs = railSegments();
+    const { rails, elbows } = buildRails();
+
+    const stations = Object.entries(layout).filter(([, p]) => p.kind !== "detour");
+    const maxExit = Math.max(1, ...stations.map(([id]) => (stopStats[id] && stopStats[id].n) || 0));
 
     const journeys = buildJourneys(total, nodeStats);
     const you = routeFromAnswers(youAnswers || {});
@@ -244,6 +271,7 @@
         speed: SPEED * (0.9 + Math.random() * 0.2),
         wobble: (Math.random() - 0.5) * 5,
         exit: j.exit,
+        end: j.end,
         counted: false,
       };
     });
@@ -252,11 +280,10 @@
     const youDot = { pts: youPts, len: pathLength(youPts), delay: 1400, speed: SPEED };
 
     const counts = {};
-    Object.keys(layout).forEach((id) => (counts[id] = 0));
+    stations.forEach(([id]) => (counts[id] = 0));
 
     const ctx = canvas.getContext("2d");
     let scale = 1;
-    let offX = 0;
 
     function resize() {
       const rect = canvas.getBoundingClientRect();
@@ -265,16 +292,22 @@
       canvas.height = rect.height * dpr;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       scale = rect.width / VW;
-      offX = 0;
     }
-    const sx = (x) => x * scale + offX;
+    const sx = (x) => x * scale;
     const sy = (y) => y * scale;
+
+    // Screen radius, area proportional to the number who got off there.
+    function stationRadius(id) {
+      const n = (stopStats[id] && stopStats[id].n) || 0;
+      return Math.max(0.5, (MAX_DIAMETER / 2) * Math.sqrt(n / maxExit) * scale);
+    }
 
     function drawRails() {
       ctx.lineCap = "round";
+      ctx.lineJoin = "round";
       ctx.strokeStyle = COLORS.rail;
       ctx.lineWidth = Math.max(5, 7 * scale);
-      segs.forEach(([a, b]) => {
+      rails.forEach(([a, b]) => {
         ctx.beginPath();
         ctx.moveTo(sx(a.x), sy(a.y));
         ctx.lineTo(sx(b.x), sy(b.y));
@@ -282,31 +315,45 @@
       });
       ctx.strokeStyle = COLORS.railInner;
       ctx.lineWidth = Math.max(1, 2 * scale);
-      segs.forEach(([a, b]) => {
+      rails.forEach(([a, b]) => {
         ctx.beginPath();
         ctx.moveTo(sx(a.x), sy(a.y));
         ctx.lineTo(sx(b.x), sy(b.y));
         ctx.stroke();
       });
+
+      // Amber elbow marking each detour, in place of a station dot.
+      ctx.strokeStyle = COLORS.detour;
+      ctx.lineWidth = Math.max(3, 5 * scale);
+      elbows.forEach(({ a, apex, b }) => {
+        const p1 = towards(apex, a, ELBOW);
+        const p2 = towards(apex, b, ELBOW);
+        ctx.beginPath();
+        ctx.moveTo(sx(p1.x), sy(p1.y));
+        ctx.lineTo(sx(apex.x), sy(apex.y));
+        ctx.lineTo(sx(p2.x), sy(p2.y));
+        ctx.stroke();
+      });
     }
 
     function drawStations() {
-      Object.entries(layout).forEach(([id, p]) => {
-        const r = (p.kind === "stop" ? 8 : p.kind === "end" ? 9 : 6.5) * Math.max(0.75, scale);
+      stations.forEach(([id, p]) => {
+        const r = stationRadius(id);
         ctx.beginPath();
         ctx.arc(sx(p.x), sy(p.y), r, 0, Math.PI * 2);
-        ctx.fillStyle = nodeColor(id);
+        ctx.fillStyle = stationColor(id);
         ctx.fill();
-        ctx.lineWidth = 2;
-        ctx.strokeStyle = "#0b0c0e";
-        ctx.stroke();
-
+        if (r > 3) {
+          ctx.lineWidth = 2;
+          ctx.strokeStyle = "#0b0c0e";
+          ctx.stroke();
+        }
         if (counts[id] > 0) {
           ctx.fillStyle = "#eceef0";
           ctx.font = `600 ${Math.max(10, 12 * scale)}px system-ui, sans-serif`;
           ctx.textAlign = "center";
-          const below = p.kind !== "detour" || p.line === "misuse";
-          ctx.fillText(String(counts[id]), sx(p.x), sy(p.y) + (below ? 30 : -18));
+          const below = p.line !== "misuse";
+          ctx.fillText(String(counts[id]), sx(p.x), sy(p.y) + (below ? r + 18 : -r - 10));
         }
       });
     }
@@ -322,7 +369,6 @@
       drawRails();
 
       let moving = 0;
-      ctx.globalAlpha = 1;
       dots.forEach((d) => {
         const dt = t - d.delay;
         if (dt < 0) return;
@@ -330,7 +376,7 @@
         if (travelled >= d.len) {
           if (!d.counted) {
             d.counted = true;
-            const key = d.exit || (d.pts[d.pts.length - 1] === layout.end_misuse ? "end_misuse" : "end");
+            const key = d.exit || (d.end === "misuse" ? "end_misuse" : "end");
             counts[key] = (counts[key] || 0) + 1;
           }
           return;
@@ -338,12 +384,10 @@
         moving += 1;
         const p = pointAt(d.pts, travelled);
         ctx.beginPath();
-        ctx.arc(sx(p.x), sy(p.y) + d.wobble * scale, Math.max(1.4, 2.1 * scale), 0, Math.PI * 2);
+        ctx.arc(sx(p.x), sy(p.y) + d.wobble * scale, 0.5, 0, Math.PI * 2);
         ctx.fillStyle = COLORS.dot;
-        ctx.globalAlpha = 0.75;
         ctx.fill();
       });
-      ctx.globalAlpha = 1;
 
       drawStations();
 
@@ -352,7 +396,7 @@
         const travelled = Math.min(youDot.len, (ydt / 1000) * youDot.speed);
         const p = pointAt(youDot.pts, travelled);
         ctx.beginPath();
-        ctx.arc(sx(p.x), sy(p.y), Math.max(4, 5.5 * scale), 0, Math.PI * 2);
+        ctx.arc(sx(p.x), sy(p.y), Math.max(3.5, 4.5 * scale), 0, Math.PI * 2);
         ctx.fillStyle = COLORS.you;
         ctx.fill();
         ctx.lineWidth = 2;
@@ -361,19 +405,15 @@
         ctx.fillStyle = COLORS.you;
         ctx.font = `700 ${Math.max(10, 12 * scale)}px system-ui, sans-serif`;
         ctx.textAlign = "left";
-        ctx.fillText("YOU", sx(p.x) + 10, sy(p.y) - 9);
+        ctx.fillText("YOU", sx(p.x) + 11, sy(p.y) - 10);
       }
 
-      if (moving === 0 && t > 3000) {
-        if (!done) {
-          done = true;
-          Object.entries(stopStats).forEach(([id, s]) => {
-            if (counts[id] !== undefined) counts[id] = s.n;
-          });
-          drawStations();
-        }
-        raf = requestAnimationFrame(frame);
-        return;
+      if (moving === 0 && t > 3000 && !done) {
+        done = true;
+        Object.entries(stopStats).forEach(([id, s]) => {
+          if (counts[id] !== undefined) counts[id] = s.n;
+        });
+        drawStations();
       }
       raf = requestAnimationFrame(frame);
     }
@@ -381,9 +421,7 @@
     raf = requestAnimationFrame(frame);
 
     // --- hover ---
-    function pct(a, b) {
-      return b ? `${Math.round((a / b) * 100)}%` : "—";
-    }
+    const pct = (a, b) => (b ? `${Math.round((a / b) * 100)}%` : "—");
 
     function tooltipFor(id) {
       const info = meta[id] || {};
@@ -420,10 +458,18 @@
       const rect = canvas.getBoundingClientRect();
       const mx = ev.clientX - rect.left;
       const my = ev.clientY - rect.top;
+
       let hit = null;
+      let best = Infinity;
       Object.entries(layout).forEach(([id, p]) => {
-        if (Math.hypot(sx(p.x) - mx, sy(p.y) - my) < 15) hit = id;
+        const reach = p.kind === "detour" ? 16 : Math.max(15, stationRadius(id) + 6);
+        const d = Math.hypot(sx(p.x) - mx, sy(p.y) - my);
+        if (d < reach && d < best) {
+          best = d;
+          hit = id;
+        }
       });
+
       if (!hit) {
         tooltip.hidden = true;
         canvas.style.cursor = "default";
@@ -432,9 +478,13 @@
       canvas.style.cursor = "pointer";
       tooltip.innerHTML = tooltipFor(hit);
       tooltip.hidden = false;
+
       const tw = tooltip.offsetWidth;
+      const th = tooltip.offsetHeight;
+      // Flip above the cursor when there is no room below.
+      const below = my + 18 + th <= rect.height;
       tooltip.style.left = `${Math.max(4, Math.min(rect.width - tw - 4, mx - tw / 2))}px`;
-      tooltip.style.top = `${my + 18}px`;
+      tooltip.style.top = `${below ? my + 18 : my - 18 - th}px`;
     }
 
     canvas.onmousemove = onMove;

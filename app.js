@@ -201,7 +201,6 @@ let currentLine = "main";
 let currentIndex = 0;
 let inDetour = false;
 const answers = {};
-const visited = [];
 let stopReached = null;
 let exitNode = null;
 let exitLabel = null;
@@ -243,13 +242,11 @@ document.getElementById("btn-start").addEventListener("click", () => {
   currentLine = "main";
   currentIndex = 0;
   inDetour = false;
-  visited.length = 0;
   renderStop();
 });
 
 document.getElementById("btn-yes").addEventListener("click", () => {
   const stop = LINES[currentLine].stops[currentIndex];
-  visited.push({ id: stop.id, label: stop.label });
 
   if (inDetour) {
     answers[stop.detour.id] = true;
@@ -275,7 +272,6 @@ document.getElementById("btn-no").addEventListener("click", () => {
     exitNode = stop.detour;
     exitLabel = stop.label;
     stopReached = stop.id;
-    visited.push({ id: stop.id, label: stop.label });
     showResult();
     return;
   }
@@ -290,7 +286,6 @@ document.getElementById("btn-no").addEventListener("click", () => {
   exitNode = stop;
   exitLabel = stop.label;
   stopReached = stop.id;
-  visited.push({ id: stop.id, label: stop.label });
   showResult();
 });
 
@@ -299,32 +294,6 @@ async function fetchStats() {
   const { data, error } = await client.rpc("get_board_stats");
   if (error || !data) return { total: 0, stops: {}, nodes: {} };
   return { total: data.total || 0, stops: data.stops || {}, nodes: data.nodes || {} };
-}
-
-function renderBreakdown(stats) {
-  const container = document.getElementById("result-breakdown");
-  container.innerHTML = "";
-
-  const line = LINES[currentLine];
-  const rows = visited.slice();
-  if (stopReached === line.endId) {
-    rows.push({ id: line.endId, label: "All aboard" });
-  }
-
-  for (const row of rows) {
-    const isCurrent = row.id === stopReached;
-    const entry = stats.stops[row.id];
-
-    const name = document.createElement("span");
-    name.textContent = isCurrent ? `${row.label} (you)` : row.label;
-    const count = document.createElement("span");
-    count.textContent = entry ? entry.n : 0;
-
-    const div = document.createElement("div");
-    div.className = "breakdown-row" + (isCurrent ? " current" : "");
-    div.append(name, count);
-    container.appendChild(div);
-  }
 }
 
 function showResult() {
@@ -348,8 +317,6 @@ function showResult() {
   document.getElementById("sincerity-block").hidden = true;
   document.getElementById("stats-block").hidden = true;
   document.getElementById("btn-restart").hidden = true;
-
-  fetchStats().then((stats) => renderBreakdown(stats));
 }
 
 const pdoomInput = document.getElementById("pdoom-input");
@@ -398,7 +365,6 @@ document.querySelectorAll("[data-sincerity]").forEach((btn) => {
     document.getElementById("stats-block").hidden = false;
     document.getElementById("btn-restart").hidden = false;
     document.body.classList.add("wide");
-    renderBreakdown(stats);
 
     DoomRail.play({
       canvas: document.getElementById("rail-canvas"),
@@ -433,33 +399,71 @@ function renderYourStats(stats, sincerity) {
   const siN = (si.sincere || 0) + (si.exaggerating || 0) + (si.downplaying || 0);
 
   const cards = [
-    ["Your P(doom)", `${chosenPdoom}%`],
-    ["Average at your stop", entry.avg_pdoom === undefined || entry.avg_pdoom === null ? "—" : `${entry.avg_pdoom}%`],
-    ["Got off where you did", entry.n ? `${entry.n} — ${pct(entry.n, total)} of everyone` : "You are the first"],
-    [
-      "At your stop, effort…",
-      trN ? `${pct(tr.helps, trN)} say it helps` : "—",
-    ],
-    [
-      "At your stop, CEOs are…",
-      siN
-        ? `${pct(si.sincere, siN)} sincere · ${pct(si.exaggerating, siN)} exaggerating · ${pct(si.downplaying, siN)} downplaying`
-        : "—",
-    ],
-    ["You said CEOs are", sincerity],
+    { k: "Your P(doom)", v: `${chosenPdoom}%` },
+    {
+      k: "Average at your stop",
+      v: entry.avg_pdoom === undefined || entry.avg_pdoom === null ? "—" : `${entry.avg_pdoom}%`,
+    },
+    { k: "Got off where you did", v: entry.n ? `${entry.n}` : "—", sub: entry.n ? `${pct(entry.n, total)} of everyone` : "You are the first" },
+    {
+      k: "At your stop, effort…",
+      rows: trN
+        ? [
+            ["still changes the odds", pct(tr.helps, trN)],
+            ["is already too late", pct(tr.locked, trN)],
+          ]
+        : null,
+      v: trN ? null : "—",
+    },
+    {
+      k: "At your stop, CEOs are…",
+      rows: siN
+        ? [
+            ["sincere", pct(si.sincere, siN)],
+            ["exaggerating", pct(si.exaggerating, siN)],
+            ["downplaying", pct(si.downplaying, siN)],
+          ]
+        : null,
+      v: siN ? null : "—",
+    },
+    { k: "You said CEOs are", v: sincerity },
   ];
 
-  for (const [k, v] of cards) {
-    const card = document.createElement("div");
-    card.className = "stat-card";
+  for (const card of cards) {
+    const el = document.createElement("div");
+    el.className = "stat-card" + (card.rows ? " stat-card--rows" : "");
+
     const key = document.createElement("span");
     key.className = "k";
-    key.textContent = k;
-    const val = document.createElement("span");
-    val.className = "v";
-    val.textContent = v;
-    card.append(key, val);
-    wrap.appendChild(card);
+    key.textContent = card.k;
+    el.appendChild(key);
+
+    if (card.rows) {
+      for (const [label, value] of card.rows) {
+        const row = document.createElement("div");
+        row.className = "stat-row";
+        const a = document.createElement("span");
+        a.textContent = label;
+        const b = document.createElement("span");
+        b.className = "stat-row-v";
+        b.textContent = value;
+        row.append(a, b);
+        el.appendChild(row);
+      }
+    } else {
+      const val = document.createElement("span");
+      val.className = "v";
+      val.textContent = card.v;
+      el.appendChild(val);
+      if (card.sub) {
+        const sub = document.createElement("span");
+        sub.className = "sub";
+        sub.textContent = card.sub;
+        el.appendChild(sub);
+      }
+    }
+
+    wrap.appendChild(el);
   }
 }
 
@@ -467,7 +471,6 @@ document.getElementById("btn-restart").addEventListener("click", () => {
   currentLine = "main";
   currentIndex = 0;
   inDetour = false;
-  visited.length = 0;
   stopReached = null;
   exitNode = null;
   exitLabel = null;
