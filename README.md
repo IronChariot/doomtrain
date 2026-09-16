@@ -29,7 +29,22 @@ already points the publish directory at the project root.
 
 ## Editing the questions
 
-The stop order and wording live in the `STOPS` array at the top of
-[app.js](app.js). Each stop's `id` doubles as its row key in Supabase
-stats, so change an `id` and re-run `schema.sql` reasoning only if you
-also want to reset historical data for that stop.
+Everything lives in the `LINES` object at the top of [app.js](app.js).
+
+There are two lines. The `main` line is the misalignment case: the AI
+itself is the threat. The `misuse` line is the case where people point
+an obedient AI at us. A rider moves onto the misuse line by rejecting
+stop 1 of the main line and then accepting its detour.
+
+Each stop takes `id`, `label`, `question`, `subtext`, and an optional
+`detour`. Answering "yes" always means the doom path stays open, and
+"no" always means it closes.
+
+A `detour` is the second chance: answering "no" to a stop that has one
+asks the detour question instead of ending the ride. "Yes" on a detour
+keeps the rider moving, and "no" ends the ride there. A detour with a
+`switchTo` key moves the rider onto that named line instead of
+continuing along the current one.
+
+Each `id` doubles as a row key for the Supabase stats, so renaming an
+`id` orphans the responses already recorded against the old name.

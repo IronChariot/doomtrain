@@ -5,11 +5,17 @@ create extension if not exists pgcrypto;
 create table if not exists public.responses (
   id uuid primary key default gen_random_uuid(),
   created_at timestamptz not null default now(),
+  line text,
   stop_reached text not null,
   pdoom numeric(5,2),
+  tractability text,
   ceo_sincerity text,
   answers jsonb not null default '{}'::jsonb
 );
+
+-- Safe to re-run if you already created the table with an earlier version.
+alter table public.responses add column if not exists line text;
+alter table public.responses add column if not exists tractability text;
 
 alter table public.responses enable row level security;
 

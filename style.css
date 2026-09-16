@@ -131,7 +131,7 @@ button.link {
   font-weight: 600;
 }
 
-.pdoom-block, .sincerity-block, .stats-block {
+.pdoom-block, .tractability-block, .sincerity-block, .stats-block {
   margin-top: 24px;
   padding-top: 20px;
   border-top: 1px solid var(--border);
