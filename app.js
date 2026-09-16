@@ -26,7 +26,7 @@ const LINES = {
       {
         id: "reachability",
         label: "Reachability",
-        question: "Can we build a system with much higher general intelligence than a human, at all?",
+        question: "Can we build a system which can solve all intellectual problems (including those that require creativity and good judgement) that a human can solve, at all?",
         subtext: "Some people expect a hard ceiling on current methods. Other people expect no such ceiling.",
         detour: {
           id: "reachability_detour",
