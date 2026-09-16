@@ -399,8 +399,18 @@
       if (youDot && ydt >= 0) {
         const travelled = Math.min(youDot.len, (ydt / 1000) * youDot.speed);
         const p = pointAt(youDot.pts, travelled);
+
+        // The exit drop is in virtual units but the counter sits at a fixed
+        // pixel offset, so on a narrow canvas they collide. Keep clear of it.
+        let py = sy(p.y);
+        if (you.exit) {
+          const st = layout[you.exit];
+          const clear = sy(st.y) + (stationRadius(you.exit) + 26) * (st.line === "misuse" ? -1 : 1);
+          py = st.line === "misuse" ? Math.min(py, clear) : Math.max(py, clear);
+        }
+
         ctx.beginPath();
-        ctx.arc(sx(p.x), sy(p.y), Math.max(3.5, 4.5 * scale), 0, Math.PI * 2);
+        ctx.arc(sx(p.x), py, Math.max(3.5, 4.5 * scale), 0, Math.PI * 2);
         ctx.fillStyle = COLORS.you;
         ctx.fill();
         ctx.lineWidth = 2;
@@ -409,7 +419,7 @@
         ctx.fillStyle = COLORS.you;
         ctx.font = `700 ${Math.max(10, 12 * scale)}px system-ui, sans-serif`;
         ctx.textAlign = "left";
-        ctx.fillText("YOU", sx(p.x) + 11, sy(p.y) - 10);
+        ctx.fillText("YOU", sx(p.x) + 11, py - 10);
       }
 
       if (moving === 0 && t > 3000 && !done) {

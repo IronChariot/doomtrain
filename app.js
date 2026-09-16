@@ -548,8 +548,8 @@ function renderYourStats(stats, sincerity) {
       k: "At your stop, effort…",
       rows: trN
         ? [
-            ["still changes the odds", pct(tr.helps, trN)],
-            ["is already too late", pct(tr.locked, trN)],
+            ["still changes the odds", pct(tr.helps, trN), chosenTractability === "helps"],
+            ["is already too late", pct(tr.locked, trN), chosenTractability === "locked"],
           ]
         : null,
       v: trN ? null : "—",
@@ -558,14 +558,13 @@ function renderYourStats(stats, sincerity) {
       k: "At your stop, CEOs are…",
       rows: siN
         ? [
-            ["sincere", pct(si.sincere, siN)],
-            ["exaggerating", pct(si.exaggerating, siN)],
-            ["downplaying", pct(si.downplaying, siN)],
+            ["sincere", pct(si.sincere, siN), sincerity === "sincere"],
+            ["exaggerating", pct(si.exaggerating, siN), sincerity === "exaggerating"],
+            ["downplaying", pct(si.downplaying, siN), sincerity === "downplaying"],
           ]
         : null,
       v: siN ? null : "—",
     },
-    { k: "You said CEOs are", v: sincerity },
   ];
 
   renderCards(wrap, cards);
@@ -582,9 +581,9 @@ function renderCards(wrap, cards) {
     el.appendChild(key);
 
     if (card.rows) {
-      for (const [label, value] of card.rows) {
+      for (const [label, value, mine] of card.rows) {
         const row = document.createElement("div");
-        row.className = "stat-row";
+        row.className = "stat-row" + (mine ? " stat-row--mine" : "");
         const a = document.createElement("span");
         a.textContent = label;
         const b = document.createElement("span");

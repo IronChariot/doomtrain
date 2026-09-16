@@ -6,6 +6,7 @@
   --accent: #e0463f;
   --card: #16181b;
   --border: #26292d;
+  --detour: #f0a838;
 }
 
 * {
@@ -271,6 +272,13 @@ body.wide #app {
   font-weight: 600;
   color: var(--fg);
   font-variant-numeric: tabular-nums;
+}
+
+/* The option you picked yourself. */
+.stat-row--mine,
+.stat-row--mine .stat-row-v {
+  color: var(--detour);
+  font-weight: 600;
 }
 
 @media (max-width: 720px) {
