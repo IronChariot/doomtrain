@@ -26,7 +26,7 @@ const LINES = {
       {
         id: "reachability",
         label: "Reachability",
-        question: "Can we build a system which can solve all intellectual problems (including those that require creativity and good judgement) that a human can solve, at all?",
+        question: "Can we build a system which has higher general intelligence than a human, at all?",
         subtext: "Some people expect a hard ceiling on current methods. Other people expect no such ceiling.",
         detour: {
           id: "reachability_detour",
@@ -222,9 +222,47 @@ function renderStop() {
   const prefix = currentLine === "main" ? "" : `${line.label} — `;
   document.getElementById("stop-index").textContent =
     `${prefix}Stop ${currentIndex + 1} of ${line.stops.length} — ${label}`;
-  document.getElementById("stop-question").textContent = node.question;
+  const hasTerm = renderQuestionText(document.getElementById("stop-question"), node.question);
   document.getElementById("stop-subtext").textContent = node.subtext;
+  document.getElementById("stop-definition").textContent = GLOSSARY_TERM.definition;
+  document.getElementById("stop-definition").hidden = !(hasTerm && definitionOpen);
   showScreen(screens.stop);
+}
+
+const GLOSSARY_TERM = {
+  phrase: "general intelligence",
+  definition:
+    "An entity with higher general intelligence than a human is defined in this website as an entity capable of performing the vast majority of tasks/solving the vast majority of problems that a human can solve, and have other advantages in this realm over humans, such as speed/parallelisation, greater variety of problems they can solve, needing less data to solve the same problems, etc.",
+};
+
+let definitionOpen = false;
+
+// Builds the question as text nodes, with the glossary phrase as a button.
+// Returns whether the phrase appeared at all.
+function renderQuestionText(el, text) {
+  el.textContent = "";
+  const idx = text.toLowerCase().indexOf(GLOSSARY_TERM.phrase);
+  if (idx === -1) {
+    el.textContent = text;
+    return false;
+  }
+
+  el.append(document.createTextNode(text.slice(0, idx)));
+
+  const term = document.createElement("button");
+  term.type = "button";
+  term.className = "glossary-term";
+  term.textContent = text.slice(idx, idx + GLOSSARY_TERM.phrase.length);
+  term.setAttribute("aria-expanded", String(definitionOpen));
+  term.addEventListener("click", () => {
+    definitionOpen = !definitionOpen;
+    term.setAttribute("aria-expanded", String(definitionOpen));
+    document.getElementById("stop-definition").hidden = !definitionOpen;
+  });
+  el.append(term);
+
+  el.append(document.createTextNode(text.slice(idx + GLOSSARY_TERM.phrase.length)));
+  return true;
 }
 
 function advance() {

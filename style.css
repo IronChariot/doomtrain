@@ -70,6 +70,33 @@ h2 {
   line-height: 1.5;
 }
 
+.glossary-term {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  border-bottom: 1px dotted var(--accent);
+  padding: 0;
+  border-radius: 0;
+  cursor: help;
+}
+
+.glossary-term:hover,
+.glossary-term[aria-expanded="true"] {
+  color: var(--accent);
+}
+
+.definition {
+  margin: 14px 0 0;
+  padding: 12px 14px;
+  border-left: 2px solid var(--accent);
+  background: var(--card);
+  border-radius: 0 8px 8px 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+  line-height: 1.55;
+}
+
 .stop-meta {
   color: var(--muted);
   font-size: 0.85rem;
