@@ -308,6 +308,7 @@ document.getElementById("btn-skip").addEventListener("click", async () => {
     stats,
     youAnswers: null,
     LINES,
+    formatPdoom,
   });
 });
 
@@ -387,15 +388,42 @@ function showResult() {
 
 const pdoomInput = document.getElementById("pdoom-input");
 const pdoomValue = document.getElementById("pdoom-value");
-pdoomInput.addEventListener("input", () => {
-  pdoomValue.textContent = `${pdoomInput.value}%`;
-});
+const pdoomFine = document.getElementById("pdoom-fine");
+const pdoomFineWrap = document.getElementById("pdoom-fine-wrap");
+
+const PDOOM_FLOOR = 0.0001;
+
+// The fine slider spans four decades: -80 is 0.0001%, 0 is 1%.
+function finePdoom() {
+  return Math.pow(10, Number(pdoomFine.value) * 0.05);
+}
+
+function currentPdoom() {
+  return Number(pdoomInput.value) === 0 ? finePdoom() : Number(pdoomInput.value);
+}
+
+function formatPdoom(value) {
+  if (value === null || value === undefined) return "—";
+  const n = Number(value);
+  if (!isFinite(n)) return "—";
+  if (n <= PDOOM_FLOOR) return "< 0.0001%";
+  if (n < 1) return `${Number(n.toPrecision(2))}%`;
+  return `${Number(n.toFixed(1))}%`;
+}
+
+function refreshPdoom() {
+  pdoomFineWrap.hidden = Number(pdoomInput.value) !== 0;
+  pdoomValue.textContent = formatPdoom(currentPdoom());
+}
+
+pdoomInput.addEventListener("input", refreshPdoom);
+pdoomFine.addEventListener("input", refreshPdoom);
 
 let chosenPdoom = null;
 let chosenTractability = null;
 
 document.getElementById("btn-submit-pdoom").addEventListener("click", () => {
-  chosenPdoom = Number(pdoomInput.value);
+  chosenPdoom = currentPdoom();
   document.getElementById("pdoom-block").hidden = true;
   document.getElementById("tractability-block").hidden = false;
 });
@@ -438,6 +466,7 @@ document.querySelectorAll("[data-sincerity]").forEach((btn) => {
       stats,
       youAnswers: answers,
       LINES,
+      formatPdoom,
     });
   });
 });
@@ -484,7 +513,7 @@ function renderOverallStats(stats) {
 
   const cards = [
     { k: "People so far", v: String(total) },
-    { k: "Average P(doom)", v: pdoomN ? `${(pdoomSum / pdoomN).toFixed(1)}%` : "—" },
+    { k: "Average P(doom)", v: pdoomN ? formatPdoom(pdoomSum / pdoomN) : "—" },
     {
       k: "Busiest stop",
       v: busiest ? labelFor(busiest.id) : "—",
@@ -520,7 +549,7 @@ function renderStatsLine(stats) {
   const entry = stats.stops[stopReached];
   const line = document.getElementById("stats-line");
   if (entry && entry.avg_pdoom !== null && entry.avg_pdoom !== undefined) {
-    line.textContent = `${stats.total} people have ridden the train. Those who got off at your stop gave an average P(doom) of ${entry.avg_pdoom}%, across ${entry.n} of them.`;
+    line.textContent = `${stats.total} people have ridden the train. Those who got off at your stop gave an average P(doom) of ${formatPdoom(entry.avg_pdoom)}, across ${entry.n} of them.`;
   } else {
     line.textContent = "No average P(doom) is available for your stop yet.";
   }
@@ -539,10 +568,10 @@ function renderYourStats(stats, sincerity) {
   const siN = (si.sincere || 0) + (si.exaggerating || 0) + (si.downplaying || 0);
 
   const cards = [
-    { k: "Your P(doom)", v: `${chosenPdoom}%` },
+    { k: "Your P(doom)", v: formatPdoom(chosenPdoom) },
     {
       k: "Average at your stop",
-      v: entry.avg_pdoom === undefined || entry.avg_pdoom === null ? "—" : `${entry.avg_pdoom}%`,
+      v: formatPdoom(entry.avg_pdoom),
     },
     { k: "Got off where you did", v: entry.n ? `${entry.n}` : "—", sub: entry.n ? `${pct(entry.n, total)} of everyone` : "You are the first" },
     {
@@ -621,7 +650,8 @@ document.getElementById("btn-restart").addEventListener("click", () => {
   chosenTractability = null;
   for (const key of Object.keys(answers)) delete answers[key];
   pdoomInput.value = 20;
-  pdoomValue.textContent = "20%";
+  pdoomFine.value = 0;
+  refreshPdoom();
   document.body.classList.remove("wide");
   showScreen(screens.intro);
 });

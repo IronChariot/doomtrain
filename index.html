@@ -42,6 +42,15 @@
       <div id="pdoom-block" class="pdoom-block">
         <label for="pdoom-input">Your P(doom), as a percentage:</label>
         <input id="pdoom-input" type="range" min="0" max="100" value="20" />
+
+        <div id="pdoom-fine-wrap" class="pdoom-fine" hidden>
+          <label for="pdoom-fine">Below 1%. Drag for finer detail:</label>
+          <input id="pdoom-fine" type="range" min="-80" max="0" step="1" value="0" />
+          <div class="pdoom-scale">
+            <span>0.0001%</span><span>0.001%</span><span>0.01%</span><span>0.1%</span><span>1%</span>
+          </div>
+        </div>
+
         <div id="pdoom-value">20%</div>
         <button id="btn-submit-pdoom" class="primary">Submit</button>
       </div>

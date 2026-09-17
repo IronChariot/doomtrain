@@ -246,7 +246,7 @@
   let raf = null;
 
   function play(opts) {
-    const { canvas, tooltip, stats, youAnswers, LINES } = opts;
+    const { canvas, tooltip, stats, youAnswers, LINES, formatPdoom } = opts;
     if (raf) cancelAnimationFrame(raf);
     buildLayout(LINES);
 
@@ -450,7 +450,7 @@
       if (s) {
         parts.push(
           `<span class="tt-rule"></span>Got off here: ${s.n} (${pct(s.n, total)} of everyone)` +
-            `<br>Average P(doom): ${s.avg_pdoom === null ? "—" : s.avg_pdoom + "%"}`
+            `<br>Average P(doom): ${formatPdoom ? formatPdoom(s.avg_pdoom) : s.avg_pdoom + "%"}`
         );
         const tr = s.tractability || {};
         const si = s.sincerity || {};

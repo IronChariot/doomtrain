@@ -17,6 +17,10 @@ create table if not exists public.responses (
 alter table public.responses add column if not exists line text;
 alter table public.responses add column if not exists tractability text;
 
+-- P(doom) accepts values far below 1%, down to 0.0001%, so it needs more
+-- decimal places than the original numeric(5,2).
+alter table public.responses alter column pdoom type numeric(9,6);
+
 alter table public.responses enable row level security;
 
 -- Anonymous visitors may record a response, but may not read anyone's
@@ -35,7 +39,7 @@ language sql
 security definer
 set search_path = public
 as $$
-  select stop_reached, count(*) as n, round(avg(pdoom), 1) as avg_pdoom
+  select stop_reached, count(*) as n, round(avg(pdoom), 6) as avg_pdoom
   from public.responses
   where pdoom is not null
   group by stop_reached;
@@ -69,7 +73,7 @@ as $$
         select
           stop_reached,
           count(*) as n,
-          round(avg(pdoom), 1) as avg_pdoom,
+          round(avg(pdoom), 6) as avg_pdoom,
           jsonb_build_object(
             'helps', count(*) filter (where tractability = 'helps'),
             'locked', count(*) filter (where tractability = 'locked')
