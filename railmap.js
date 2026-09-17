@@ -200,12 +200,13 @@
     }
   }
 
-  function waypoints(journey) {
+  function waypoints(journey, drop) {
     const pts = [START];
     journey.path.forEach((id) => pts.push(layout[id]));
     if (journey.exit) {
       const p = layout[journey.exit];
-      pts.push({ x: p.x, y: p.y + (p.line === "misuse" ? -56 : 56) });
+      const d = drop || 56;
+      pts.push({ x: p.x, y: p.y + (p.line === "misuse" ? -d : d) });
     } else if (journey.end) {
       pts.push(journey.end === "misuse" ? layout.end_misuse : layout.end);
     }
@@ -275,31 +276,17 @@
     const journeys = buildJourneys(total, nodeStats);
     const you = youAnswers ? routeFromAnswers(youAnswers) : null;
 
-    const SPEED = 118;
-    const dots = journeys.map((j, i) => {
-      const pts = waypoints(j);
-      return {
-        pts,
-        len: pathLength(pts),
-        delay: (i / Math.max(1, total)) * 2600 + Math.random() * 900,
-        speed: SPEED * (0.9 + Math.random() * 0.2),
-        swayAmp: 0.35 + Math.random() * 0.65,
-        swayRate: 1.4 + Math.random() * 2.6,
-        swayPhase: Math.random() * Math.PI * 2,
-        exit: j.exit,
-        end: j.end,
-        counted: false,
-      };
-    });
-
-    let youDot = null;
+    // Your result is not a second dot travelling beside the crowd. It claims
+    // one of the crowd's own journeys, so it moves with them and its arrival
+    // grows the station like anyone else's.
     if (you) {
-      const youPts = waypoints(you);
-      youDot = { pts: youPts, len: pathLength(youPts), delay: 1400, speed: SPEED };
+      let i = journeys.findIndex((j) => j.exit === you.exit && j.end === you.end);
+      if (i === -1) {
+        journeys.push({});
+        i = journeys.length - 1;
+      }
+      journeys[i] = { path: you.path, exit: you.exit, end: you.end, isYou: true };
     }
-
-    const counts = {};
-    stations.forEach(([id]) => (counts[id] = 0));
 
     const ctx = canvas.getContext("2d");
     let scale = 1;
@@ -317,6 +304,39 @@
     }
     const sx = (x) => x * scale;
     const sy = (y) => y * scale;
+
+    resize();
+
+    // Your dot stays on screen after it lands, so its drop has to clear the
+    // station's count label. On a narrow canvas that label sits further out in
+    // map units, so the drop has to grow to match.
+    function youDrop() {
+      if (!you || !you.exit) return 56;
+      const n = (stopStats[you.exit] && stopStats[you.exit].n) || 0;
+      const radius = (MAX_DIAMETER / 2) * Math.sqrt(n / maxExit);
+      return Math.max(56, radius + 26 / scale);
+    }
+
+    const SPEED = 118;
+    const dots = journeys.map((j, i) => {
+      const pts = waypoints(j, j.isYou ? youDrop() : 0);
+      return {
+        pts,
+        len: pathLength(pts),
+        delay: j.isYou ? 1300 : (i / Math.max(1, total)) * 2600 + Math.random() * 900,
+        speed: SPEED * (j.isYou ? 1 : 0.9 + Math.random() * 0.2),
+        swayAmp: 0.35 + Math.random() * 0.65,
+        swayRate: 1.4 + Math.random() * 2.6,
+        swayPhase: Math.random() * Math.PI * 2,
+        exit: j.exit,
+        end: j.end,
+        isYou: !!j.isYou,
+        counted: false,
+      };
+    });
+
+    const counts = {};
+    stations.forEach(([id]) => (counts[id] = 0));
 
     // Screen radius, area proportional to how many have arrived so far. Every
     // station starts at a single pixel and grows as its dots land.
@@ -392,6 +412,7 @@
       drawRails();
 
       let moving = 0;
+      let youAt = null;
       ctx.fillStyle = COLORS.dot;
       dots.forEach((d) => {
         const dt = t - d.delay;
@@ -403,10 +424,16 @@
             const key = d.exit || (d.end === "misuse" ? "end_misuse" : "end");
             counts[key] = (counts[key] || 0) + 1;
           }
+          // Yours stays put at the end of the line instead of vanishing.
+          if (d.isYou) youAt = pointAt(d.pts, d.len);
           return;
         }
         moving += 1;
         const p = pointAt(d.pts, travelled);
+        if (d.isYou) {
+          youAt = p;
+          return;
+        }
         // Sway across the rail, never along it, and never past the rail edge.
         const sway = Math.sin((t / 1000) * d.swayRate + d.swayPhase) * d.swayAmp * railHalf;
         const px = sx(p.x) - p.dy * sway;
@@ -418,22 +445,9 @@
 
       drawStations();
 
-      const ydt = youDot ? t - youDot.delay : -1;
-      if (youDot && ydt >= 0) {
-        const travelled = Math.min(youDot.len, (ydt / 1000) * youDot.speed);
-        const p = pointAt(youDot.pts, travelled);
-
-        // The exit drop is in virtual units but the counter sits at a fixed
-        // pixel offset, so on a narrow canvas they collide. Keep clear of it.
-        let py = sy(p.y);
-        if (you.exit) {
-          const st = layout[you.exit];
-          const clear = sy(st.y) + (stationRadius(you.exit) + 26) * (st.line === "misuse" ? -1 : 1);
-          py = st.line === "misuse" ? Math.min(py, clear) : Math.max(py, clear);
-        }
-
+      if (youAt) {
         ctx.beginPath();
-        ctx.arc(sx(p.x), py, Math.max(3.5, 4.5 * scale), 0, Math.PI * 2);
+        ctx.arc(sx(youAt.x), sy(youAt.y), Math.max(3.5, 4.5 * scale), 0, Math.PI * 2);
         ctx.fillStyle = COLORS.you;
         ctx.fill();
         ctx.lineWidth = 2;
@@ -442,7 +456,7 @@
         ctx.fillStyle = COLORS.you;
         ctx.font = `700 ${Math.max(10, 12 * scale)}px system-ui, sans-serif`;
         ctx.textAlign = "left";
-        ctx.fillText("YOU", sx(p.x) + 11, py - 10);
+        ctx.fillText("YOU", sx(youAt.x) + 11, sy(youAt.y) - 10);
       }
 
       if (moving === 0 && t > 3000 && !done) {
