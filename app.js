@@ -19,7 +19,7 @@ const LINES = {
           question:
             "Even if a superintelligent system never acts against us on its own, could humans use an obedient one to cause a catastrophe?",
           subtext:
-            "This separates two risks. One is an AI with its own goals. The other is people with an AI. Their aims range from permanent control to deliberate mass death.",
+            "This separates two risks. One is an AI with its own goals. The other is people with an AI. Some people think human intent is the harder problem. Others think powerful tools stay under institutional control, as dangerous technologies have before.",
           switchTo: "misuse",
         },
       },
@@ -34,7 +34,7 @@ const LINES = {
           question:
             "Even if no single system beats a smart human, could millions of fast copies that coordinate cause the same problem?",
           subtext:
-            "A ceiling on one mind is not a ceiling on a population of minds. Speed and numbers can replace raw depth.",
+            "Some people think speed and numbers can replace raw depth. Others think many copies of one mind share its blind spots, and lose time to coordination.",
         },
       },
       {
@@ -48,7 +48,7 @@ const LINES = {
           id: "rate_of_progress_detour",
           label: "Slow arrival",
           question: "Even on a slower path, would the control problem still be unsolved when we arrive?",
-          subtext: "Extra time helps only if we use it. This asks whether delay alone produces a solution.",
+          subtext: "Some people think extra decades pass without solving anything. Others think a slower arrival gives alignment research and regulation the time they need.",
         },
       },
       {
@@ -64,28 +64,28 @@ const LINES = {
           question:
             "Even with no self-improvement loop, could ordinary human-led research still reach a dangerous capability level?",
           subtext:
-            "Recursive self-improvement makes the path faster, but it may not be necessary. Human researchers alone could still get there.",
+            "Some people think human researchers reach the same place without a loop. Others think that without one, progress stays slow enough to stay in hand.",
         },
       },
       {
         id: "takeoff_speed",
         label: "Takeoff speed",
         question:
-          "If that happens, does capability jump within months or a few years, rather than unfold over many years?",
+          "Once systems reach that level, does capability jump within months or a few years, rather than unfold over many years?",
         subtext: "This sets how much warning time humans and institutions get to react.",
         detour: {
           id: "takeoff_speed_detour",
           label: "Wasted warning",
           question: "Even with years of warning, would governments and labs fail to act in time?",
           subtext:
-            "A slow takeoff helps only if institutions use the time. Responses to other known risks have often been slow.",
+            "Some people point to slow responses on other known risks. Others point to cases where clear evidence moved governments fast.",
         },
       },
       {
         id: "alignment_tractable",
         label: "Control and alignment",
         question:
-          "Is alignment difficult: will we lack reliable methods to align a much smarter system with human intent, in time?",
+          "Will we still lack reliable methods to align a much smarter system with human intent, in time?",
         subtext:
           "People who expect alignment methods to keep pace with capability gains usually get off here, since a solved alignment problem breaks the rest of the chain.",
         detour: {
@@ -94,7 +94,7 @@ const LINES = {
           question:
             "Even if alignment turns out to be solvable, could a careless or malicious actor still build and deploy a dangerous, unaligned system anyway?",
           subtext:
-            "A solvable problem is not the same as a problem every actor actually solves. This asks whether misuse alone keeps the risk alive, even with a known fix.",
+            "Some people think a known fix still gets skipped by someone. Others think a solved alignment problem becomes standard practice, the way safety engineering did elsewhere.",
         },
       },
       {
@@ -109,7 +109,7 @@ const LINES = {
           question:
             "Even if every actor stays careful and coordinated, could someone deploy a system that everyone wrongly believed was safe?",
           subtext:
-            "Caution is not the same as correctness. This asks whether our tests can tell a safe system from an unsafe one.",
+            "Some people doubt our tests can tell a safe system from an unsafe one. Others expect evaluation methods to improve alongside capability.",
         },
       },
       {
@@ -157,7 +157,8 @@ const LINES = {
           label: "The careful hands",
           question:
             "Even if the technology stays in a few hands, could those hands themselves use it for catastrophic ends?",
-          subtext: "A state or a company that holds it alone is still an actor with its own aims.",
+          subtext:
+            "Some people think a sole holder is still an actor with its own aims. Others think a small and accountable set of holders is what keeps misuse in check.",
         },
       },
       {
