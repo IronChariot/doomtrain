@@ -103,3 +103,24 @@ as $$
 $$;
 
 grant execute on function public.get_board_stats() to anon;
+
+-- Lets a visitor withdraw the single response they just submitted. The row id
+-- is generated in their browser, so only that page ever knows it, and this
+-- deletes by id alone -- it cannot touch anything else. The age limit caps the
+-- damage if an id were ever to leak. Returns whether a row actually went.
+create or replace function public.delete_response(response_id uuid)
+returns boolean
+language sql
+security definer
+set search_path = public
+as $$
+  with removed as (
+    delete from public.responses
+    where id = response_id
+      and created_at > now() - interval '24 hours'
+    returning 1
+  )
+  select exists (select 1 from removed);
+$$;
+
+grant execute on function public.delete_response(uuid) to anon;

@@ -421,6 +421,37 @@ pdoomFine.addEventListener("input", refreshPdoom);
 
 let chosenPdoom = null;
 let chosenTractability = null;
+let lastResponseId = null;
+
+// Type this on the results screen to pull your own submission back out of the
+// database. It can only ever remove the row this page just wrote: the id is
+// generated here and never leaves the page, and the function behind it deletes
+// by id alone. Skipping to the results writes nothing, so there is nothing to
+// undo and the sequence does nothing.
+const UNDO_SEQUENCE = "scrub";
+let typedKeys = "";
+
+document.addEventListener("keydown", async (ev) => {
+  if (ev.ctrlKey || ev.metaKey || ev.altKey) return;
+  typedKeys = (typedKeys + ev.key.toLowerCase()).slice(-UNDO_SEQUENCE.length);
+  if (typedKeys !== UNDO_SEQUENCE) return;
+  typedKeys = "";
+
+  if (document.getElementById("stats-block").hidden) return;
+  if (!lastResponseId || !client) return;
+
+  const id = lastResponseId;
+  lastResponseId = null;
+
+  const note = document.getElementById("undo-note");
+  const { data, error } = await client.rpc("delete_response", { response_id: id });
+  note.textContent = error
+    ? `Could not remove the response: ${error.message}`
+    : data
+    ? "Your response was removed from the database. The numbers above still count it until you reload."
+    : "Nothing was removed. The response was not found, or it is more than a day old.";
+  note.hidden = false;
+});
 
 document.getElementById("btn-submit-pdoom").addEventListener("click", () => {
   chosenPdoom = currentPdoom();
@@ -441,16 +472,26 @@ document.querySelectorAll("[data-sincerity]").forEach((btn) => {
     const sincerity = btn.getAttribute("data-sincerity");
     document.getElementById("sincerity-block").hidden = true;
 
+    // The id is minted here rather than by the database, so this page knows
+    // which row is its own without needing read access to the table.
+    const responseId = window.crypto && crypto.randomUUID ? crypto.randomUUID() : null;
+    lastResponseId = null;
+
     if (client) {
-      await client.from("responses").insert({
+      const row = {
         line: currentLine,
         stop_reached: stopReached,
         pdoom: chosenPdoom,
         tractability: chosenTractability,
         ceo_sincerity: sincerity,
         answers,
-      });
+      };
+      if (responseId) row.id = responseId;
+      const { error } = await client.from("responses").insert(row);
+      if (!error && responseId) lastResponseId = responseId;
     }
+
+    document.getElementById("undo-note").hidden = true;
 
     const stats = await fetchStats();
     renderStatsLine(stats);
@@ -648,6 +689,8 @@ document.getElementById("btn-restart").addEventListener("click", () => {
   exitLabel = null;
   chosenPdoom = null;
   chosenTractability = null;
+  lastResponseId = null;
+  document.getElementById("undo-note").hidden = true;
   for (const key of Object.keys(answers)) delete answers[key];
   pdoomInput.value = 20;
   pdoomFine.value = 0;

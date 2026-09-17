@@ -218,17 +218,31 @@
     return total;
   }
 
+  // Position along the path, plus the unit direction of travel there, so dots
+  // can sway across the rail rather than along it.
   function pointAt(pts, dist) {
     let remaining = dist;
     for (let i = 0; i < pts.length - 1; i++) {
-      const seg = Math.hypot(pts[i + 1].x - pts[i].x, pts[i + 1].y - pts[i].y);
+      const dx = pts[i + 1].x - pts[i].x;
+      const dy = pts[i + 1].y - pts[i].y;
+      const seg = Math.hypot(dx, dy);
       if (remaining <= seg) {
         const t = seg ? remaining / seg : 0;
-        return { x: pts[i].x + (pts[i + 1].x - pts[i].x) * t, y: pts[i].y + (pts[i + 1].y - pts[i].y) * t };
+        return {
+          x: pts[i].x + dx * t,
+          y: pts[i].y + dy * t,
+          dx: seg ? dx / seg : 1,
+          dy: seg ? dy / seg : 0,
+        };
       }
       remaining -= seg;
     }
-    return pts[pts.length - 1];
+    const last = pts[pts.length - 1];
+    const prev = pts[pts.length - 2] || last;
+    const dx = last.x - prev.x;
+    const dy = last.y - prev.y;
+    const len = Math.hypot(dx, dy) || 1;
+    return { x: last.x, y: last.y, dx: dx / len, dy: dy / len };
   }
 
   function towards(from, to, dist) {
@@ -269,7 +283,9 @@
         len: pathLength(pts),
         delay: (i / Math.max(1, total)) * 2600 + Math.random() * 900,
         speed: SPEED * (0.9 + Math.random() * 0.2),
-        wobble: (Math.random() - 0.5) * 5,
+        swayAmp: 0.35 + Math.random() * 0.65,
+        swayRate: 1.4 + Math.random() * 2.6,
+        swayPhase: Math.random() * Math.PI * 2,
         exit: j.exit,
         end: j.end,
         counted: false,
@@ -287,14 +303,17 @@
 
     const ctx = canvas.getContext("2d");
     let scale = 1;
+    let dpr = 1;
+    let railHalf = 3.5;
 
     function resize() {
       const rect = canvas.getBoundingClientRect();
-      const dpr = window.devicePixelRatio || 1;
+      dpr = window.devicePixelRatio || 1;
       canvas.width = rect.width * dpr;
       canvas.height = rect.height * dpr;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       scale = rect.width / VW;
+      railHalf = Math.max(5, 7 * scale) / 2;
     }
     const sx = (x) => x * scale;
     const sy = (y) => y * scale;
@@ -373,6 +392,7 @@
       drawRails();
 
       let moving = 0;
+      ctx.fillStyle = COLORS.dot;
       dots.forEach((d) => {
         const dt = t - d.delay;
         if (dt < 0) return;
@@ -387,10 +407,13 @@
         }
         moving += 1;
         const p = pointAt(d.pts, travelled);
-        ctx.beginPath();
-        ctx.arc(sx(p.x), sy(p.y) + d.wobble * scale, 0.5, 0, Math.PI * 2);
-        ctx.fillStyle = COLORS.dot;
-        ctx.fill();
+        // Sway across the rail, never along it, and never past the rail edge.
+        const sway = Math.sin((t / 1000) * d.swayRate + d.swayPhase) * d.swayAmp * railHalf;
+        const px = sx(p.x) - p.dy * sway;
+        const py = sy(p.y) + p.dx * sway;
+        // A whole pixel on the device grid: an arc this small antialiases into
+        // grey instead of staying white.
+        ctx.fillRect(Math.round(px * dpr) / dpr, Math.round(py * dpr) / dpr, 1, 1);
       });
 
       drawStations();
