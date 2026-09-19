@@ -40,7 +40,12 @@
       <p id="result-body" class="subtext"></p>
 
       <div id="pdoom-block" class="pdoom-block">
-        <label for="pdoom-input">Your P(doom), as a percentage:</label>
+        <label for="pdoom-input">What is your P(doom)? Please drag the slider to set it.</label>
+        <p class="pdoom-hint">
+          That is the chance you give that AI causes human extinction, or a
+          permanent loss of human control over our own future. Nothing is set
+          until you drag it.
+        </p>
         <input id="pdoom-input" type="range" min="0" max="100" value="20" />
 
         <div id="pdoom-fine-wrap" class="pdoom-fine" hidden>
@@ -51,8 +56,11 @@
           </div>
         </div>
 
-        <div id="pdoom-value">20%</div>
-        <button id="btn-submit-pdoom" class="primary">Submit</button>
+        <div class="pdoom-answer">
+          <span class="pdoom-answer-k">Your answer</span>
+          <span id="pdoom-value">20%</span>
+        </div>
+        <button id="btn-submit-pdoom" class="primary">Submit my answer</button>
       </div>
 
       <div id="tractability-block" class="tractability-block" hidden>

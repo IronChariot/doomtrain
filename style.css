@@ -153,6 +153,27 @@ button.link {
   margin: 12px 0 6px;
 }
 
+.pdoom-hint {
+  margin: 6px 0 0;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.pdoom-answer {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.pdoom-answer-k {
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
 #pdoom-value {
   font-size: 1.2rem;
   font-weight: 600;
